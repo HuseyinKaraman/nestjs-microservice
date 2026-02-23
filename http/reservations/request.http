@@ -1,0 +1,36 @@
+@url = http://localhost:3000
+@id = 699b9b9989cb6e749b43ddc3
+
+### 1. Create reservation
+#### Request
+POST {{url}}/reservations
+Content-Type: application/json
+
+{
+  "startDate": "2024-07-01T00:00:00.000Z",
+  "endDate": "2024-07-10T00:00:00.000Z",
+  "placeId": "place123",
+  "invoiceId": "invoice123"
+}
+
+### 2. Find reservation by id
+#### Request
+GET {{url}}/reservations/{{id}}
+
+### 3. Find all reservations
+#### Request
+GET {{url}}/reservations
+
+### 4. Update reservation
+#### Request
+PATCH {{url}}/reservations/{{id}}
+Content-Type: application/json
+
+{
+  "endDate": "2024-07-15T00:00:00.000Z"
+}
+
+### 5. Delete reservation
+#### Request
+DELETE {{url}}/reservations/{{id}}
+

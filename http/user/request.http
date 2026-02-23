@@ -1,0 +1,51 @@
+@url = http://localhost:3000
+
+
+### 1. Sign up
+#### Request
+POST {{url}}/auth/signup
+Content-Type: application/json
+
+{
+  "email": "john.admin@gmail.com",
+  "password": "123456"
+}
+
+### 1.1. Sign in
+#### Request
+POST {{url}}/auth/signin
+Content-Type: application/json
+
+{
+  "email": "john.admin@gmail.com",
+  "password": "123456"
+}
+
+### 1.2. Sign out
+#### Request
+POST {{url}}/auth/signout
+
+### Test who am i
+#### Request
+GET {{url}}/auth/whoami
+
+### 2. Find user by id
+#### Request
+GET {{url}}/auth/1
+
+### 3. Find user by email
+#### Request
+GET {{url}}/auth?email=john.doe@gmail.com
+
+### 4. Delete user
+#### Request
+DELETE {{url}}/auth/2
+
+### 5. Update user
+#### Request
+PATCH {{url}}/auth/1
+Content-Type: application/json
+
+{
+  "email": "john.doe1@gmail.com"
+}
