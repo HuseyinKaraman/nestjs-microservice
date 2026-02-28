@@ -1,12 +1,22 @@
 version: "3.8"
 services:
+  reservations:
+    build:
+      context: .
+      dockerfile: ./apps/reservations/Dockerfile
+      target: development
+    command: npm run start:dev reservations
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/usr/src/app
+    depends_on:
+      - mongo
   mongo:
-    image: mongo:6
+    image: mongo
     container_name: sleepr-mongo
     ports:
       - "27017:27017"
-    environment:
-      MONGO_INITDB_DATABASE: sleepr
     volumes:
       - mongo-data:/data/db
 
