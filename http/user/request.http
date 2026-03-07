@@ -1,4 +1,5 @@
 @url = http://localhost:3001
+@cookie = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OWFiNzZiYzQyNDRmZjIxM2E2OGM3OTYiLCJpYXQiOjE3NzI5MjUxMzUsImV4cCI6MTc3MjkyODczNX0.o8M0cGqekhg_GZdQ9yTf2ntC9CK8vf7W2sQvo3nn8mk
 
 ### 1. Sign up
 #### Request
@@ -20,13 +21,15 @@ Content-Type: application/json
   "password": "Password123!."
 }
 
-### 1.2. Sign out
+### 1.2 Test who am i
+#### Request
+GET {{url}}/users/whoami
+Cookie: Authentication={{cookie}}
+
+### 1.3 Sign out
 #### Request
 POST {{url}}/auth/signout
-
-### Test who am i
-#### Request
-GET {{url}}/auth/whoami
+Cookie: Authentication={{cookie}}
 
 ### 2. Find user by id
 #### Request
