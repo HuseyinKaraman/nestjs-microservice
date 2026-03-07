@@ -2,7 +2,7 @@
 
 ### 1. Sign up
 #### Request
-POST {{url}}/auth/signup
+POST {{url}}/users/signup
 Content-Type: application/json
 
 {
