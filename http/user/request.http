@@ -1,5 +1,5 @@
-@url = http://localhost:3001
-@cookie = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OWFiNzZiYzQyNDRmZjIxM2E2OGM3OTYiLCJpYXQiOjE3NzI5MjUxMzUsImV4cCI6MTc3MjkyODczNX0.o8M0cGqekhg_GZdQ9yTf2ntC9CK8vf7W2sQvo3nn8mk
+@url = http://localhost:3000
+@cookie = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OWFkZmY2ZWVjNzU0YjhmYjJkOGViNmUiLCJpYXQiOjE3NzMwMTA4MDQsImV4cCI6MTc3MzAxNDQwNH0.MKUwZsxthVbW6woHzLWpvMqTbkLmctLOOGNkdIdT8FE
 
 ### 1. Sign up
 #### Request

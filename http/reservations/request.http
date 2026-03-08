@@ -1,9 +1,11 @@
-@url = http://localhost:3000
-@id = 699b9b9989cb6e749b43ddc3
+@url = http://localhost:3001
+@id = 69ae047e2333bd458e01ca77
+@cookie = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OWFkZmY2ZWVjNzU0YjhmYjJkOGViNmUiLCJpYXQiOjE3NzMwMTA4MDQsImV4cCI6MTc3MzAxNDQwNH0.MKUwZsxthVbW6woHzLWpvMqTbkLmctLOOGNkdIdT8FE
 
 ### 1. Create reservation
 #### Request
 POST {{url}}/reservations
+Cookie: Authentication={{cookie}}
 Content-Type: application/json
 
 {
@@ -16,14 +18,17 @@ Content-Type: application/json
 ### 2. Find reservation by id
 #### Request
 GET {{url}}/reservations/{{id}}
+Cookie: Authentication={{cookie}}
 
 ### 3. Find all reservations
 #### Request
 GET {{url}}/reservations
+Cookie: Authentication={{cookie}}
 
 ### 4. Update reservation
 #### Request
 PATCH {{url}}/reservations/{{id}}
+Cookie: Authentication={{cookie}}
 Content-Type: application/json
 
 {
@@ -33,4 +38,4 @@ Content-Type: application/json
 ### 5. Delete reservation
 #### Request
 DELETE {{url}}/reservations/{{id}}
-
+Cookie: Authentication={{cookie}}
