@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { DatabaseModule, LoggerModule, AUTH_SERVICE } from '@app/common';
+import { DatabaseModule, LoggerModule, AUTH_SERVICE, PAYMENTS_SERVICE } from '@app/common';
 import { ReservationsController } from './reservations.controller';
 import { ReservationsService } from './reservations.service';
 import { ReservationsRepository } from './reservations.repository';
@@ -21,6 +21,10 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
         NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
         PORT: Joi.number().default(3000),
         MONGODB_URI: Joi.string().required(),
+        AUTH_HOST: Joi.string().required(),
+        AUTH_PORT: Joi.number().required(),
+        PAYMENTS_HOST: Joi.string().required(),
+        PAYMENTS_PORT: Joi.number().required()
       }),
     }),
     ClientsModule.registerAsync([
@@ -29,8 +33,19 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
         useFactory: (configService: ConfigService) => ({
           transport: Transport.TCP,
           options: {
-            host: configService.get<string>('AUTH_HOST') ?? 'localhost',
-            port: configService.get<number>('AUTH_PORT') ?? 3002,
+            host: configService.get<string>('AUTH_HOST'),
+            port: configService.get<number>('AUTH_PORT'),
+          },
+        }),
+        inject: [ConfigService],
+      },
+      { 
+        name: PAYMENTS_SERVICE, 
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.TCP,
+          options: {
+            host: configService.get<string>('PAYMENTS_HOST'),
+            port: configService.get<number>('PAYMENTS_PORT'),
           },
         }),
         inject: [ConfigService],

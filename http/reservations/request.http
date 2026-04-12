@@ -11,8 +11,10 @@ Content-Type: application/json
 {
   "startDate": "2024-07-01T00:00:00.000Z",
   "endDate": "2024-07-10T00:00:00.000Z",
-  "placeId": "place123",
-  "invoiceId": "invoice123"
+  "charge": {
+    "amount": 5,
+    "paymentMethodId": "pm_card_visa"
+  }
 }
 
 ### 2. Find reservation by id
