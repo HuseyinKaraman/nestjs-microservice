@@ -7,7 +7,7 @@ services:
       target: development
     command: pnpm run start:dev reservations
     env_file:
-      - ./apps/reservations/.env.development
+      - ./apps/reservations/.env
     ports:
       - "3001:3001"
     volumes:
@@ -23,7 +23,7 @@ services:
       target: development
     command: pnpm run start:dev payments
     env_file:
-      - ./apps/payments/.env.development
+      - ./apps/payments/.env
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
@@ -37,7 +37,7 @@ services:
       target: development
     command: pnpm run start:dev auth
     env_file:
-      - ./apps/auth/.env.development
+      - ./apps/auth/.env
     ports:
       - "3000:3000"
     volumes:
@@ -53,7 +53,7 @@ services:
       target: development
     command: pnpm run start:dev notifications
     env_file:
-      - ./apps/notifications/.env.development
+      - ./apps/notifications/.env
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules

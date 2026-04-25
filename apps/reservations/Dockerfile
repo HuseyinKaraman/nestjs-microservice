@@ -6,7 +6,7 @@ WORKDIR /usr/src/app
 
 COPY package.json pnpm-lock.yaml ./
 
-RUN pnpm install
+RUN pnpm install --shamefully-hoist
 
 COPY . .
 
@@ -23,7 +23,7 @@ WORKDIR /usr/src/app
 
 COPY package.json pnpm-lock.yaml ./
 
-RUN pnpm install --prod
+RUN pnpm install --prod --shamefully-hoist
 
 COPY . .
 
