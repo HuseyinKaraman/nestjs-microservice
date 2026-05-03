@@ -89,5 +89,10 @@
     "moduleNameMapper": {
       "^@app/common(|/.*)$": "<rootDir>/libs/common/src/$1"
     }
+  },
+  "pnpm": {
+    "overrides": {
+      "@nestjs/common": "^11.1.19"
+    }
   }
 }

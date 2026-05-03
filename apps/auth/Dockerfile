@@ -1,21 +1,20 @@
 FROM node:alpine As development
 
-RUN npm install -g pnpm
-
 WORKDIR /usr/src/app
 
 COPY package.json ./
 COPY pnpm-lock.yaml ./
 COPY tsconfig.json tsconfig.json
+COPY nest-cli.json nest-cli.json
 
-RUN pnpm install --shamefully-hoist
+RUN npm install -g pnpm
 
 COPY apps/auth ./apps/auth
 COPY libs libs
 
-RUN cd apps/auth && pnpm install --shamefully-hoist
+RUN pnpm install -r --shamefully-hoist --config.confirmModulesPurge=false
 
-RUN pnpm run build
+RUN pnpm run build auth
 
 FROM node:alpine As production
 

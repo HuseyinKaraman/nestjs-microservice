@@ -1,0 +1,57 @@
+steps:
+  # Build and push Docker images for each microservice
+  # Reservations Service
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build', 
+      '-t', 
+      'gcr.io/$PROJECT_ID/reservations:latest', 
+      '-f', 'apps/reservations/Dockerfile', 
+      '.'
+    ]
+    id: Build Reservations Image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [ 'push', 'gcr.io/$PROJECT_ID/reservations:latest' ]
+    id: Push Reservations Image
+  
+  # Notifications Service
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build', 
+      '-t', 
+      'gcr.io/$PROJECT_ID/notifications:latest', 
+      '-f', 'apps/notifications/Dockerfile', 
+      '.'
+    ]
+    id: Build Notifications Image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [ 'push', 'gcr.io/$PROJECT_ID/notifications:latest' ]
+    id: Push Notifications Image
+  
+  # Payments Service
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build', 
+      '-t', 
+      'gcr.io/$PROJECT_ID/payments:latest', 
+      '-f', 'apps/payments/Dockerfile', 
+      '.'
+    ]
+    id: Build Payments Image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [ 'push', 'gcr.io/$PROJECT_ID/payments:latest' ]
+    id: Push Payments Image
+  
+  # Auth Service
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build', 
+      '-t', 
+      'gcr.io/$PROJECT_ID/auth:latest', 
+      '-f', 'apps/auth/Dockerfile', 
+      '.'
+    ]
+    id: Build Auth Image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [ 'push', 'gcr.io/$PROJECT_ID/auth:latest' ]
+    id: Push Auth Image

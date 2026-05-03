@@ -1,19 +1,21 @@
 FROM node:alpine As development
 
-RUN npm install -g pnpm
 
 WORKDIR /usr/src/app
 
 COPY package.json ./
 COPY pnpm-lock.yaml ./
 COPY tsconfig.json tsconfig.json
+COPY nest-cli.json nest-cli.json
 
-RUN pnpm install --shamefully-hoist
+RUN npm install -g pnpm
 
 COPY apps/reservations ./apps/reservations
 COPY libs libs
 
-RUN pnpm run build
+RUN pnpm install -r --shamefully-hoist --config.confirmModulesPurge=false
+
+RUN pnpm run build reservations
 
 FROM node:alpine As production
 
