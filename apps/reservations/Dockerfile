@@ -4,11 +4,14 @@ RUN npm install -g pnpm
 
 WORKDIR /usr/src/app
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json ./
+COPY pnpm-lock.yaml ./
+COPY tsconfig.json tsconfig.json
 
 RUN pnpm install --shamefully-hoist
 
-COPY . .
+COPY apps/reservations ./apps/reservations
+COPY libs libs
 
 RUN pnpm run build
 
@@ -21,13 +24,11 @@ RUN npm install -g pnpm
 
 WORKDIR /usr/src/app
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json ./
+COPY pnpm-lock.yaml ./
 
 RUN pnpm install --prod --shamefully-hoist
 
-COPY . .
-
 COPY --from=development /usr/src/app/dist ./dist
-
 
 CMD ["node", "dist/apps/reservations/main"]
