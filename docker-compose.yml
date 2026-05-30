@@ -15,7 +15,7 @@ services:
       - .:/usr/src/app
       - /usr/src/app/node_modules
     depends_on:
-      - mongo
+      - mysql
 
   payments:
     build:
@@ -29,7 +29,7 @@ services:
       - .:/usr/src/app
       - /usr/src/app/node_modules
     depends_on:
-      - mongo
+      - mysql
 
   auth:
     build:
@@ -45,7 +45,7 @@ services:
       - .:/usr/src/app
       - /usr/src/app/node_modules
     depends_on:
-      - mongo
+      - mysql
 
   notifications:
     build:
@@ -59,15 +59,17 @@ services:
       - .:/usr/src/app
       - /usr/src/app/node_modules
     depends_on:
-      - mongo
+      - mysql
 
-  mongo:
-    image: mongo
-    container_name: sleepr-mongo
+  mysql:
+    image: mysql
+    env_file:
+      - .env
+    container_name: sleepr-mysql
     ports:
-      - "27017:27017"
+      - "3306:3306"
     volumes:
-      - mongo-data:/data/db
+      - mysql-data:/var/lib/mysql
 
 volumes:
-  mongo-data:
+  mysql-data:
