@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: notifications
+  name: notifications
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notifications
+  template:
+    metadata:
+      labels:
+        app: notifications
+    spec:
+      containers:
+      - image: notifications:latest
+        imagePullPolicy: Never
+        name: notifications
+        env:
+        - name: PORT
+          value: "3004"
+        - name: SMTP_USER
+          valueFrom:
+            secretKeyRef:
+              name: smtp
+              key: user
+        - name: GOOGLE_OAUTH_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: google
+              key: clientId
+        - name: GOOGLE_OAUTH_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: google
+              key: clientSecret
+        - name: GOOGLE_OAUTH_REFRESH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: google
+              key: refreshToken
+        ports:
+          - containerPort: 3004
+

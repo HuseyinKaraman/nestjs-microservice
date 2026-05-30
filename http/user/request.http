@@ -1,4 +1,5 @@
 @url = http://localhost:3000
+@urlKubernetes = http://localhost/auth
 @cookie = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OWFkZmY2ZWVjNzU0YjhmYjJkOGViNmUiLCJpYXQiOjE3NzMwMTA4MDQsImV4cCI6MTc3MzAxNDQwNH0.MKUwZsxthVbW6woHzLWpvMqTbkLmctLOOGNkdIdT8FE
 
 ### 1. Sign up

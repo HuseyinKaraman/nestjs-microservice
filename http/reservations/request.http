@@ -1,4 +1,5 @@
 @url = http://localhost:3001
+@urlKubernetes = http://localhost/reservations
 @id = 69ae047e2333bd458e01ca77
 @cookie = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OWFkZmY2ZWVjNzU0YjhmYjJkOGViNmUiLCJpYXQiOjE3NzMwMTA4MDQsImV4cCI6MTc3MzAxNDQwNH0.MKUwZsxthVbW6woHzLWpvMqTbkLmctLOOGNkdIdT8FE
 

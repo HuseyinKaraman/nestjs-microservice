@@ -1,98 +1,197 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Sleepr — NestJS Microservices
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A hotel reservation platform built with NestJS microservices architecture.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## Architecture Overview
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+The system consists of four independent microservices communicating over TCP, exposed to the outside world through an NGINX Ingress.
 
-## Project setup
+```mermaid
+graph TD
+    Client["Client (Browser / Postman / HTTP)"]
 
-```bash
-$ npm install
+    subgraph K8s["Kubernetes Cluster (Docker Desktop)"]
+        Ingress["NGINX Ingress\nlocalhost:80"]
+
+        subgraph Services["Microservices"]
+            R["reservations\nHTTP :3001"]
+            A["auth\nHTTP :3000 / TCP :3002"]
+            P["payments\nTCP :3003"]
+            N["notifications\nTCP :3004"]
+        end
+
+        MongoDB[("MongoDB\n:27017")]
+    end
+
+    Client -->|"GET/POST /reservations/*"| Ingress
+    Client -->|"POST /auth/*"| Ingress
+    Ingress -->|"HTTP"| R
+    Ingress -->|"HTTP"| A
+    R -->|"TCP: authenticate JWT"| A
+    R -->|"TCP: create charge"| P
+    P -->|"TCP: send email"| N
+    R --> MongoDB
+    A --> MongoDB
 ```
 
-## Compile and run the project
+---
 
-```bash
-# development
-$ npm run start
+## Services
 
-# watch mode
-$ npm run start:dev
+| Service | HTTP Port | TCP Port | Responsibility |
+|---|---|---|---|
+| **reservations** | 3001 | — | CRUD for reservations, JWT-protected routes |
+| **auth** | 3000 | 3002 | User registration, login, JWT signing & validation |
+| **payments** | — | 3003 | Stripe charge processing |
+| **notifications** | — | 3004 | Email notifications via Gmail OAuth |
 
-# production mode
-$ npm run start:prod
+---
+
+## Inter-Service Communication
+
+Services communicate internally via **TCP transport** (NestJS Microservices). No service is called directly over HTTP from another service.
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant R as reservations
+    participant A as auth (TCP)
+    participant P as payments (TCP)
+    participant N as notifications (TCP)
+
+    C->>R: POST /reservations + JWT cookie
+    R->>A: TCP: authenticate { jwt }
+    A-->>R: UserDto
+    R->>P: TCP: create_charge { amount, paymentMethodId }
+    P->>P: Stripe.paymentIntents.create()
+    P->>N: TCP: notify_email { email, ... }
+    N->>N: Send Gmail via OAuth
+    P-->>R: charge result
+    R-->>C: 201 Created reservation
 ```
 
-## Run tests
+---
+
+## Shared Library
+
+`libs/common` is a shared library used by all services. It contains:
+
+| Module / File | Purpose |
+|---|---|
+| `DatabaseModule` | MongoDB connection via Mongoose |
+| `AbstractRepository` | Generic repository with CRUD helpers |
+| `AbstractSchema` | Base Mongoose schema with `_id` |
+| `JwtAuthGuard` | Reusable JWT guard (delegates to auth via TCP) |
+| `CurrentUser` decorator | Extracts user from request |
+| `LoggerModule` | Pino structured logger |
+| DTOs: `UserDto`, `CardDto`, `CreateChargeDto` | Shared data shapes |
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | NestJS 11 |
+| Language | TypeScript 5 |
+| Database | MongoDB + Mongoose |
+| Auth | Passport.js, JWT, bcryptjs |
+| Payments | Stripe |
+| Email | Nodemailer + Google OAuth2 |
+| Package Manager | pnpm (workspace) |
+| Containerization | Docker (multi-stage builds) |
+| Orchestration | Kubernetes + Helm |
+| Ingress | NGINX Ingress Controller |
+
+---
+
+## Local Development (Docker Compose)
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+docker-compose up
 ```
 
-## Deployment
+Services and ports:
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+| Service | URL |
+|---|---|
+| reservations | http://localhost:3001 |
+| auth | http://localhost:3000 |
+| MongoDB | mongodb://localhost:27017 |
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+---
+
+## Kubernetes Deployment (Docker Desktop)
+
+### Prerequisites
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+# Install NGINX Ingress Controller (one-time)
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.0/deploy/static/provider/cloud/deploy.yaml
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Build images
 
-## Resources
+```bash
+docker build -t auth:latest -f apps/auth/Dockerfile --target production .
+docker build -t reservations:latest -f apps/reservations/Dockerfile --target production .
+docker build -t payments:latest -f apps/payments/Dockerfile --target production .
+docker build -t notifications:latest -f apps/notifications/Dockerfile --target production .
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+### Deploy
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+```bash
+cd k8s/sleepr
+helm install sleepr .
+```
 
-## Support
+### Access
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+| Endpoint | URL |
+|---|---|
+| Reservations API | http://localhost/reservations |
+| Auth API | http://localhost/auth |
 
-## Stay in touch
+For full command reference see [docs/KUBERNETES_COMMANDS.md](docs/KUBERNETES_COMMANDS.md).
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+---
 
-## License
+## Project Structure
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+```
+sleepr/
+├── apps/
+│   ├── auth/             # Auth microservice
+│   ├── reservations/     # Reservations microservice
+│   ├── payments/         # Payments microservice
+│   └── notifications/    # Notifications microservice
+├── libs/
+│   └── common/           # Shared modules, DTOs, guards
+├── k8s/
+│   └── sleepr/           # Helm chart
+│       └── templates/
+│           ├── auth/
+│           ├── reservations/
+│           ├── payments/
+│           ├── notifications/
+│           └── ingress.yaml
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── AUTH_FLOW.md
+│   └── KUBERNETES_COMMANDS.md
+├── docker-compose.yml
+└── pnpm-workspace.yaml
+```
+
+---
+
+## Documentation
+
+| File | Description |
+|---|---|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Detailed architecture, guards, strategies |
+| [docs/AUTH_FLOW.md](docs/AUTH_FLOW.md) | Step-by-step auth flow with diagrams |
+| [docs/KUBERNETES_COMMANDS.md](docs/KUBERNETES_COMMANDS.md) | All Docker, Helm, kubectl commands |
