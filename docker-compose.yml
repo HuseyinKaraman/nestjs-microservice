@@ -5,11 +5,12 @@ services:
       context: .
       dockerfile: ./apps/reservations/Dockerfile
       target: development
-    command: pnpm run start:dev reservations
+    command: pnpm run start:dev reservations ## For debugging start:debug
     env_file:
       - ./apps/reservations/.env
     ports:
       - "3001:3001"
+      # - "9229:9229" ## For debugging with VS Code 
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
