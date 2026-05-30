@@ -2,10 +2,8 @@ FROM node:alpine As development
 
 WORKDIR /usr/src/app
 
-COPY package.json ./
-COPY pnpm-lock.yaml ./
-COPY tsconfig.json tsconfig.json
-COPY nest-cli.json nest-cli.json
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json nest-cli.json ./
+COPY apps/payments/package.json ./apps/payments/
 
 RUN npm install -g pnpm@8
 
@@ -21,15 +19,9 @@ FROM node:alpine As production
 ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
 
-RUN npm install -g pnpm@8
-
 WORKDIR /usr/src/app
 
-COPY package.json ./
-COPY pnpm-lock.yaml ./
-
-RUN pnpm install --prod --shamefully-hoist
-
+COPY --from=development /usr/src/app/node_modules ./node_modules
 COPY --from=development /usr/src/app/dist ./dist
 
 CMD ["node", "dist/apps/payments/main"]
