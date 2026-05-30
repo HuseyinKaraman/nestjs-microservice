@@ -13,6 +13,7 @@ export class UsersService {
     return this.usersRepository.create({
       ...createUserDto,
       password: await bcrypt.hash(createUserDto.password, 10),
+      roles: createUserDto.roles || [],
     });
   }
 
