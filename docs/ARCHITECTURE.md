@@ -87,9 +87,9 @@ sequenceDiagram
     R->>A: TCP mesajı: "authenticate" { Authentication: JWT }
     Note over A: auth'daki JwtAuthGuard + JwtStrategy çalışır
     A->>A: jwt.verify(token, JWT_SECRET)
-    A-->>R: UserDto { _id, email, ... }
-    Note over R: req.user = UserDto set edilir
-    R->>R: @CurrentUser() dan user._id alınır
+    A-->>R: User { id, email, ... }
+    Note over R: req.user = User set edilir
+    R->>R: @CurrentUser() dan user.id alınır
     R->>DB: reservationsRepository.create({ ...dto, userId })
     DB-->>R: Kaydedilen rezervasyon
     R-->>C: 201 Created { reservation }
@@ -177,9 +177,9 @@ export const CurrentUser = createParamDecorator(
 
 ```mermaid
 flowchart LR
-    Guard["JwtAuthGuard\nreq.user = UserDto set eder"]
+    Guard["JwtAuthGuard\nreq.user = User set eder"]
     -->|"request.user"| Dec["@CurrentUser()\nreq.user'ı okur"]
-    --> Handler["create(@CurrentUser() user)\nuser._id kullanılır"]
+    --> Handler["create(@CurrentUser() user)\nuser.id kullanılır"]
 ```
 
 ```typescript
@@ -187,9 +187,9 @@ flowchart LR
 @Post()
 async create(
   @Body() dto: CreateReservationDto,
-  @CurrentUser() user: UserDto     // ← Guard'ın set ettiği req.user gelir
+  @CurrentUser() user: User     // ← Guard'ın set ettiği req.user gelir
 ) {
-  return this.service.create(dto, user._id);
+  return this.service.create(dto, user.id);
 }
 ```
 
@@ -207,7 +207,7 @@ graph TB
         LG["JwtAuthGuard"]
         LD["@CurrentUser()"]
         LDB["DatabaseModule"]
-        LDTO["UserDto"]
+        LDTO["User"]
     end
 
     subgraph "apps/auth"

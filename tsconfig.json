@@ -20,6 +20,8 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
+    "strictPropertyInitialization": false,
+    "useDefineForClassFields": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
       "@app/common": [

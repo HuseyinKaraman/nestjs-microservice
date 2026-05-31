@@ -63,7 +63,7 @@ sequenceDiagram
 
     C->>R: POST /reservations + JWT cookie
     R->>A: TCP: authenticate { jwt }
-    A-->>R: UserDto
+    A-->>R: User
     R->>P: TCP: create_charge { amount, paymentMethodId }
     P->>P: Stripe.paymentIntents.create()
     P->>N: TCP: notify_email { email, ... }
@@ -82,11 +82,11 @@ sequenceDiagram
 |---|---|
 | `DatabaseModule` | MongoDB connection via Mongoose |
 | `AbstractRepository` | Generic repository with CRUD helpers |
-| `AbstractSchema` | Base Mongoose schema with `_id` |
+| `AbstractSchema` | Base Mongoose schema with `id` |
 | `JwtAuthGuard` | Reusable JWT guard (delegates to auth via TCP) |
 | `CurrentUser` decorator | Extracts user from request |
 | `LoggerModule` | Pino structured logger |
-| DTOs: `UserDto`, `CardDto`, `CreateChargeDto` | Shared data shapes |
+| DTOs: `User`, `CardDto`, `CreateChargeDto` | Shared data shapes |
 
 ---
 

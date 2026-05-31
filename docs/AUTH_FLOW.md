@@ -28,7 +28,7 @@ sequenceDiagram
         US-->>STRATEGY: UnauthorizedException
         STRATEGY-->>C: 401 Unauthorized
     else Şifre doğru
-        US-->>STRATEGY: UserDocument
+        US-->>STRATEGY: User
     end
 
     STRATEGY-->>GUARD: user nesnesi
@@ -103,7 +103,7 @@ flowchart TD
     A[Guard tetiklenir] --> B[LocalStrategy.validate çalışır]
     B --> C[UsersService.validateUser]
     C --> D{bcrypt.compare}
-    D -- Eşleşti --> E[UserDocument döner\n→ request.user]
+    D -- Eşleşti --> E[User döner\n→ request.user]
     D -- Eşleşmedi --> F[UnauthorizedException]
 ```
 
@@ -125,7 +125,7 @@ export const CurrentUser = createParamDecorator(
 
 ```mermaid
 flowchart LR
-    REQ[request.user\nGuard tarafından set edildi] -->|CurrentUser| PARAM[Controller parametresi\nuser: UserDocument]
+    REQ[request.user\nGuard tarafından set edildi] -->|CurrentUser| PARAM[Controller parametresi\nuser: User]
 ```
 
 Guard → Strategy → `request.user = userDoc` → `@CurrentUser()` bunu alır.
@@ -141,7 +141,7 @@ flowchart TD
     C --> D["UsersService.validateUser()"]
     D --> E["bcrypt ile şifre karşılaştır"]
     E -->|Başarısız| Z["401 Unauthorized"]
-    E -->|Başarılı| F["UserDocument → request.user"]
+    E -->|Başarılı| F["User → request.user"]
     F --> G["AuthController.signIn()"]
     G --> H["@CurrentUser() → user al"]
     H --> I["AuthService.signIn(user, response)"]

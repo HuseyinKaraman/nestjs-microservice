@@ -2,8 +2,8 @@ import { CanActivate, ExecutionContext, Inject, Injectable, Logger, Unauthorized
 import { catchError, map, Observable, of, tap } from "rxjs";
 import { AUTH_SERVICE } from "../constants/services";
 import { ClientProxy } from "@nestjs/microservices";
-import { UserDto } from "../dto";
 import { Reflector } from "@nestjs/core";
+import { User } from "../models";
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate { 
@@ -25,14 +25,14 @@ export class JwtAuthGuard implements CanActivate {
 
     const requiredRoles = this.reflector.get<string[]>('roles', context.getHandler());
 
-    return this.authClient.send<UserDto>('authenticate', {
+    return this.authClient.send<User>('authenticate', {
       Authentication: jwt
     }).pipe(
       tap((res) => {
         if (requiredRoles) {
           for (const role of requiredRoles || []) {
-            if (!res.roles?.includes(role)) {
-              this.logger.warn(`User ${res._id} does not have required role: ${role}`);
+            if (!res.roles?.map(role => role.name).includes(role)) {
+              this.logger.warn(`User ${res.id} does not have required role: ${role}`);
               throw new UnauthorizedException('Insufficient role');
             }
           }

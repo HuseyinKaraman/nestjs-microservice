@@ -9,7 +9,8 @@ Content-Type: application/json
 
 {
   "email": "john.admin@gmail.com",
-  "password": "Password123!."
+  "password": "Password123!.",
+  "roles": [{"name": "User"}]
 }
 
 ### 1.1. Sign in

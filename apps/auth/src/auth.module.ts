@@ -19,7 +19,6 @@ import { JwtStrategy } from './strategies/jwt.strategy';
         NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
         HTTP_PORT: Joi.number().default(3001),
         TCP_PORT: Joi.number().default(3002),
-        MONGODB_URI: Joi.string().required(),
         JWT_SECRET: Joi.string().required(),
         JWT_EXPIRATION: Joi.number().default(3600),
       }),
