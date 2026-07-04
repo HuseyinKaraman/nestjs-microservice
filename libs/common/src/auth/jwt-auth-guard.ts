@@ -1,18 +1,24 @@
-import { CanActivate, ExecutionContext, Inject, Injectable, Logger, UnauthorizedException } from "@nestjs/common";
+import { CanActivate, ExecutionContext, Inject, Injectable, Logger, OnModuleInit, UnauthorizedException } from "@nestjs/common";
 import { catchError, map, Observable, of, tap } from "rxjs";
-import { AUTH_SERVICE } from "../constants/services";
-import { ClientProxy } from "@nestjs/microservices";
 import { UserDto } from "../dto";
 import { Reflector } from "@nestjs/core";
+import { AUTH_SERVICE_NAME, AuthServiceClient } from "../types";
+import type { ClientGrpc } from "@nestjs/microservices";
 
 @Injectable()
-export class JwtAuthGuard implements CanActivate { 
+export class JwtAuthGuard implements CanActivate, OnModuleInit { 
   private readonly logger = new Logger(JwtAuthGuard.name);
+  private authService: AuthServiceClient;
 
   constructor (
-    @Inject(AUTH_SERVICE) private readonly authClient: ClientProxy,
+    @Inject(AUTH_SERVICE_NAME) private readonly client: ClientGrpc,
     private readonly reflector: Reflector
   ) {}
+  
+  onModuleInit() {
+    this.authService = 
+      this.client.getService<AuthServiceClient>(AUTH_SERVICE_NAME);
+  }
   
   canActivate(
     context: ExecutionContext
@@ -25,19 +31,24 @@ export class JwtAuthGuard implements CanActivate {
 
     const requiredRoles = this.reflector.get<string[]>('roles', context.getHandler());
 
-    return this.authClient.send<UserDto>('authenticate', {
-      Authentication: jwt
-    }).pipe(
-      tap((res) => {
-        if (requiredRoles) {
-          for (const role of requiredRoles || []) {
-            if (!res.roles?.includes(role)) {
-              this.logger.warn(`User ${res._id} does not have required role: ${role}`);
-              throw new UnauthorizedException('Insufficient role');
+    return this.authService
+      .authenticate({
+        Authentication: jwt 
+      })
+      .pipe(
+        tap((res) => {
+          if (requiredRoles) {
+            for (const role of requiredRoles || []) {
+              if (!res.roles?.includes(role)) {
+                this.logger.warn(`User ${res.id} does not have required role: ${role}`);
+                throw new UnauthorizedException('Insufficient role');
+              }
             }
-          }
-        } 
-        context.switchToHttp().getRequest().user = res;
+          } 
+        context.switchToHttp().getRequest().user = {
+          ...res,
+          _id: res.id
+        }
       }),
       map(() => true),
       catchError((err) => {

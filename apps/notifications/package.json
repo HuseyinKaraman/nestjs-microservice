@@ -9,6 +9,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@grpc/grpc-js": "^1.14.4",
     "nodemailer": "^8.0.6"
   },
   "devDependencies": {

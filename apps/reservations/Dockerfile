@@ -25,5 +25,6 @@ WORKDIR /usr/src/app
 
 COPY --from=development /usr/src/app/node_modules ./node_modules
 COPY --from=development /usr/src/app/dist ./dist
+COPY proto proto
 
 CMD ["node", "dist/apps/reservations/main"]
