@@ -6,71 +6,116 @@ A hotel reservation platform built with NestJS microservices architecture.
 
 ## Architecture Overview
 
-The system consists of four independent microservices communicating over TCP, exposed to the outside world through an NGINX Ingress.
+The system consists of four independent microservices. Two of them expose HTTP APIs; all internal calls go over **gRPC**. `auth` and `reservations` each own a separate PostgreSQL database, accessed through **Prisma**.
 
 ```mermaid
 graph TD
     Client["Client (Browser / Postman / HTTP)"]
 
-    subgraph K8s["Kubernetes Cluster (Docker Desktop)"]
-        Ingress["NGINX Ingress\nlocalhost:80"]
-
-        subgraph Services["Microservices"]
-            R["reservations\nHTTP :3001"]
-            A["auth\nHTTP :3000 / TCP :3002"]
-            P["payments\nTCP :3003"]
-            N["notifications\nTCP :3004"]
-        end
-
-        MongoDB[("MongoDB\n:27017")]
+    subgraph Services["Microservices"]
+        R["reservations\nHTTP :3001"]
+        A["auth\nHTTP :3000 / gRPC :5001"]
+        P["payments\ngRPC :5001"]
+        N["notifications\ngRPC :5001"]
     end
 
-    Client -->|"GET/POST /reservations/*"| Ingress
-    Client -->|"POST /auth/*"| Ingress
-    Ingress -->|"HTTP"| R
-    Ingress -->|"HTTP"| A
-    R -->|"TCP: authenticate JWT"| A
-    R -->|"TCP: create charge"| P
-    P -->|"TCP: send email"| N
-    R --> MongoDB
-    A --> MongoDB
+    subgraph PG["PostgreSQL :5432"]
+        AuthDB[("auth DB\nUser")]
+        ResDB[("reservations DB\nReservation")]
+    end
+
+    Client -->|"/reservations/*"| R
+    Client -->|"/auth/*"| A
+    R -->|"gRPC: Authenticate"| A
+    R -->|"gRPC: CreateCharge"| P
+    P -->|"gRPC: NotifyEmail"| N
+    R -->|Prisma| ResDB
+    A -->|Prisma| AuthDB
 ```
 
 ---
 
 ## Services
 
-| Service | HTTP Port | TCP Port | Responsibility |
-|---|---|---|---|
-| **reservations** | 3001 | — | CRUD for reservations, JWT-protected routes |
-| **auth** | 3000 | 3002 | User registration, login, JWT signing & validation |
-| **payments** | — | 3003 | Stripe charge processing |
-| **notifications** | — | 3004 | Email notifications via Gmail OAuth |
+| Service | HTTP Port | gRPC | Database | Responsibility |
+|---|---|---|---|---|
+| **reservations** | 3001 | client only | `reservations` | CRUD for reservations, JWT-protected routes |
+| **auth** | 3000 | `auth:5001` | `auth` | User registration, login, JWT signing & validation |
+| **payments** | — | `payments:5001` | — | Stripe charge processing |
+| **notifications** | — | `notifications:5001` | — | Email notifications via Gmail OAuth |
+
+Each service runs in its own container, so all gRPC servers can use port 5001.
 
 ---
 
 ## Inter-Service Communication
 
-Services communicate internally via **TCP transport** (NestJS Microservices). No service is called directly over HTTP from another service.
+Services communicate internally via **gRPC** (NestJS `Transport.GRPC`). Contracts live in [`proto/`](proto/):
+
+| Proto file | Service | RPC |
+|---|---|---|
+| `auth.proto` | `AuthService` | `Authenticate(Authentication) → UserMessage` |
+| `payments.proto` | `PaymentsService` | `CreateCharge(CreateChargeMessage) → CreateChargeResponse` |
+| `notifications.proto` | `NotificationsService` | `NotifyEmail(NotifyEmailMessage) → Empty` |
+
+TypeScript client/server types are generated with `ts-proto` into `libs/common/src/types`.
 
 ```mermaid
 sequenceDiagram
     participant C as Client
     participant R as reservations
-    participant A as auth (TCP)
-    participant P as payments (TCP)
-    participant N as notifications (TCP)
+    participant A as auth (gRPC)
+    participant P as payments (gRPC)
+    participant N as notifications (gRPC)
+    participant DB as PostgreSQL (reservations)
 
     C->>R: POST /reservations + JWT cookie
-    R->>A: TCP: authenticate { jwt }
-    A-->>R: UserDto
-    R->>P: TCP: create_charge { amount, paymentMethodId }
+    R->>A: Authenticate { Authentication: jwt }
+    A-->>R: UserMessage { id, email, roles }
+    R->>P: CreateCharge { amount, paymentMethodId, email }
     P->>P: Stripe.paymentIntents.create()
-    P->>N: TCP: notify_email { email, ... }
+    P-)N: NotifyEmail { email, text }
     N->>N: Send Gmail via OAuth
-    P-->>R: charge result
+    P-->>R: { id } (payment intent)
+    R->>DB: prisma.reservation.create({ invoiceId: id, userId, ... })
     R-->>C: 201 Created reservation
 ```
+
+---
+
+## Database (Prisma + PostgreSQL)
+
+Each database-backed service owns its Prisma setup:
+
+```
+apps/<service>/
+├── prisma/
+│   ├── schema.prisma     # models
+│   └── migrations/       # SQL migrations (committed)
+├── prisma.config.ts      # reads DATABASE_URL
+├── generated/prisma/     # generated client (not committed)
+└── src/prisma.service.ts # PrismaClient with @prisma/adapter-pg
+```
+
+| Service | Model | Fields |
+|---|---|---|
+| auth | `User` | `id` (Int, autoincrement), `email` (unique), `password`, `roles` (String[]) |
+| reservations | `Reservation` | `id` (Int), `timestamp`, `startDate`, `endDate`, `userId` (Int, indexed), `invoiceId` (unique) |
+
+Both databases live on the same PostgreSQL server; the database name is set in each service's `DATABASE_URL`.
+
+### Creating a migration
+
+Migration commands run against your local Postgres using `apps/<service>/.env.local` (`DATABASE_URL=postgresql://...@localhost:5432/<db>`):
+
+```bash
+pnpm --filter @sleepr/auth migrate          # prisma migrate dev
+pnpm --filter @sleepr/auth generate         # prisma generate
+pnpm --filter @sleepr/reservations migrate
+pnpm --filter @sleepr/reservations generate
+```
+
+Containers apply pending migrations with `prisma migrate deploy` on startup, so you don't need to run migrations manually inside Docker.
 
 ---
 
@@ -80,13 +125,16 @@ sequenceDiagram
 
 | Module / File | Purpose |
 |---|---|
-| `DatabaseModule` | MongoDB connection via Mongoose |
-| `AbstractRepository` | Generic repository with CRUD helpers |
-| `AbstractSchema` | Base Mongoose schema with `_id` |
-| `JwtAuthGuard` | Reusable JWT guard (delegates to auth via TCP) |
+| `JwtAuthGuard` | Reusable JWT guard (delegates to auth via gRPC, checks `@Roles()`) |
 | `CurrentUser` decorator | Extracts user from request |
+| `Roles` decorator | Declares roles required for a route |
+| `User` interface | Shared user shape (`id: number`, `email`, `roles`) |
+| `types/` | gRPC clients, controllers and messages generated from `proto/` |
 | `LoggerModule` | Pino structured logger |
-| DTOs: `UserDto`, `CardDto`, `CreateChargeDto` | Shared data shapes |
+| `HealthModule` | `GET /` health check |
+| DTOs: `CardDto`, `CreateChargeDto` | Shared data shapes |
+
+> `libs/common/src/database` still contains the old Mongoose `DatabaseModule` / `AbstractRepository`. No service uses them anymore.
 
 ---
 
@@ -96,11 +144,12 @@ sequenceDiagram
 |---|---|
 | Framework | NestJS 11 |
 | Language | TypeScript 5 |
-| Database | MongoDB + Mongoose |
+| Database | PostgreSQL + Prisma 7 (`@prisma/adapter-pg`) |
+| Inter-service | gRPC (`@grpc/grpc-js`, `ts-proto`) |
 | Auth | Passport.js, JWT, bcryptjs |
 | Payments | Stripe |
 | Email | Nodemailer + Google OAuth2 |
-| Package Manager | pnpm (workspace) |
+| Package Manager | pnpm 10 (workspace) |
 | Containerization | Docker (multi-stage builds) |
 | Orchestration | Kubernetes + Helm |
 | Ingress | NGINX Ingress Controller |
@@ -110,8 +159,10 @@ sequenceDiagram
 ## Local Development (Docker Compose)
 
 ```bash
-docker-compose up
+docker compose up --build
 ```
+
+On startup, `auth` and `reservations` run `prisma migrate deploy` and `prisma generate`, then start in watch mode.
 
 Services and ports:
 
@@ -119,11 +170,52 @@ Services and ports:
 |---|---|
 | reservations | http://localhost:3001 |
 | auth | http://localhost:3000 |
-| MongoDB | mongodb://localhost:27017 |
+| PostgreSQL | postgresql://postgres:postgres@localhost:5432 |
+
+### How `node_modules` works in dev
+
+The project root is bind-mounted into each container (`.:/usr/src/app`) for hot reload. The `node_modules` folders are masked with anonymous volumes, so containers use the dependencies installed in the image, not the host's:
+
+```yaml
+volumes:
+  - .:/usr/src/app
+  - /usr/src/app/node_modules
+  - /usr/src/app/apps/auth/node_modules   # per-app pnpm links
+```
+
+Host pnpm links point to host paths (e.g. `C:\Users\...`) and break inside Linux containers. If you see `Cannot find module .../node_modules/prisma/...`, an app-level `node_modules` is not masked.
+
+After changing dependencies, rebuild and recreate the anonymous volumes, otherwise the old `node_modules` is kept:
+
+```bash
+docker compose up --build -V
+```
+
+---
+
+## Docker Images
+
+Each Dockerfile has two stages:
+
+| Stage | What it does |
+|---|---|
+| `development` | Installs all dependencies, runs `prisma generate`, builds with `nest build` (webpack). Used by docker-compose. |
+| `production` | Installs **prod-only** dependencies (`pnpm install --prod`), copies `dist`, Prisma schema/migrations and `proto/`. Runs `prisma migrate deploy`, then `node dist/apps/<service>/main`. |
+
+```bash
+docker build -t auth:latest -f apps/auth/Dockerfile --target production .
+docker build -t reservations:latest -f apps/reservations/Dockerfile --target production .
+docker build -t payments:latest -f apps/payments/Dockerfile --target production .
+docker build -t notifications:latest -f apps/notifications/Dockerfile --target production .
+```
+
+> `payments` and `notifications` Dockerfiles still use the old layout (pnpm 8, dev `node_modules` copied into production).
 
 ---
 
 ## Kubernetes Deployment (Docker Desktop)
+
+> ⚠️ The Helm chart in `k8s/sleepr` has **not been migrated** yet: it still injects `MONGODB_URI` and exposes the old TCP ports (3002–3004). It needs `DATABASE_URL`, the `*_GRPC_URL` variables, port 5001 and a PostgreSQL instance before it works with the current code.
 
 ### Prerequisites
 
@@ -134,12 +226,7 @@ kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/cont
 
 ### Build images
 
-```bash
-docker build -t auth:latest -f apps/auth/Dockerfile --target production .
-docker build -t reservations:latest -f apps/reservations/Dockerfile --target production .
-docker build -t payments:latest -f apps/payments/Dockerfile --target production .
-docker build -t notifications:latest -f apps/notifications/Dockerfile --target production .
-```
+See [Docker Images](#docker-images).
 
 ### Deploy
 
@@ -164,12 +251,13 @@ For full command reference see [docs/KUBERNETES_COMMANDS.md](docs/KUBERNETES_COM
 ```
 sleepr/
 ├── apps/
-│   ├── auth/             # Auth microservice
-│   ├── reservations/     # Reservations microservice
+│   ├── auth/             # Auth microservice (+ prisma/)
+│   ├── reservations/     # Reservations microservice (+ prisma/)
 │   ├── payments/         # Payments microservice
 │   └── notifications/    # Notifications microservice
 ├── libs/
-│   └── common/           # Shared modules, DTOs, guards
+│   └── common/           # Shared guards, decorators, gRPC types
+├── proto/                # gRPC contracts
 ├── k8s/
 │   └── sleepr/           # Helm chart
 │       └── templates/

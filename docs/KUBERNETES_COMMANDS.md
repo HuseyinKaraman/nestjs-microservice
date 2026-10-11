@@ -1,5 +1,7 @@
 # Kubernetes & Helm Command Reference
 
+> ⚠️ The Helm chart in `k8s/sleepr` still targets the old setup (MongoDB via `MONGODB_URI`, TCP ports 3002–3004). The services now use PostgreSQL (`DATABASE_URL`) and gRPC on port 5001 (`AUTH_GRPC_URL`, `PAYMENTS_GRPC_URL`, `NOTIFICATIONS_GRPC_URL`). Update the chart before deploying the current code.
+
 ## 1. Docker Image Build
 
 All commands run from **project root** (`sleepr/`).
@@ -51,6 +53,28 @@ pnpm install
 ```
 
 > Run this after adding packages or changing any `package.json`. With `pnpm-workspace.yaml` in place, all workspace packages are installed in a single command.
+
+### Prisma (auth / reservations)
+
+Uses `apps/<service>/.env.local` (local Postgres on `localhost:5432`).
+
+```bash
+pnpm --filter @sleepr/auth migrate            # create & apply a migration (prisma migrate dev)
+pnpm --filter @sleepr/auth generate           # regenerate the client into apps/auth/generated/prisma
+pnpm --filter @sleepr/reservations migrate
+pnpm --filter @sleepr/reservations generate
+```
+
+Containers run `prisma migrate deploy` on startup to apply committed migrations.
+
+### Docker Compose (local dev)
+
+```bash
+docker compose up --build        # build and start all services + postgres
+docker compose up --build -V     # also recreate anonymous node_modules volumes (after dependency changes)
+docker compose logs -f auth      # follow one service's logs
+docker compose down              # stop and remove containers (postgres data volume is kept)
+```
 
 ---
 

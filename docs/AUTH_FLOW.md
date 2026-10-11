@@ -8,7 +8,7 @@ sequenceDiagram
     participant GUARD as LocalAuthGuard
     participant STRATEGY as LocalStrategy
     participant US as UsersService
-    participant DB as MongoDB
+    participant DB as PostgreSQL (Prisma)
     participant CTRL as AuthController
     participant SVC as AuthService
     participant JWT as JwtService
@@ -20,15 +20,15 @@ sequenceDiagram
     Note over STRATEGY: Passport'un "local" stratejisi<br/>usernameField: 'email'
 
     STRATEGY->>US: validateUser(email, password)
-    US->>DB: findOne({ email })
-    DB-->>US: user document
+    US->>DB: prisma.user.findFirstOrThrow({ where: { email } })
+    DB-->>US: User kaydı
     US->>US: bcrypt.compare(password, user.password)
     
     alt Şifre yanlış
         US-->>STRATEGY: UnauthorizedException
         STRATEGY-->>C: 401 Unauthorized
     else Şifre doğru
-        US-->>STRATEGY: UserDocument
+        US-->>STRATEGY: User
     end
 
     STRATEGY-->>GUARD: user nesnesi
@@ -38,7 +38,7 @@ sequenceDiagram
 
     CTRL->>CTRL: @CurrentUser() decorator<br/>request.user'ı alır
     CTRL->>SVC: signIn(user, response)
-    SVC->>JWT: sign({ userId })
+    SVC->>JWT: sign({ userId: user.id })
     JWT-->>SVC: JWT token
     SVC->>SVC: expires hesapla (JWT_EXPIRATION)
     SVC-->>CTRL: response.cookie('jwt', token, { httpOnly, expires })
@@ -103,7 +103,7 @@ flowchart TD
     A[Guard tetiklenir] --> B[LocalStrategy.validate çalışır]
     B --> C[UsersService.validateUser]
     C --> D{bcrypt.compare}
-    D -- Eşleşti --> E[UserDocument döner\n→ request.user]
+    D -- Eşleşti --> E[User döner\n→ request.user]
     D -- Eşleşmedi --> F[UnauthorizedException]
 ```
 
@@ -125,10 +125,10 @@ export const CurrentUser = createParamDecorator(
 
 ```mermaid
 flowchart LR
-    REQ[request.user\nGuard tarafından set edildi] -->|CurrentUser| PARAM[Controller parametresi\nuser: UserDocument]
+    REQ[request.user\nGuard tarafından set edildi] -->|CurrentUser| PARAM[Controller parametresi\nuser: User]
 ```
 
-Guard → Strategy → `request.user = userDoc` → `@CurrentUser()` bunu alır.
+Guard → Strategy → `request.user = user` → `@CurrentUser()` bunu alır.
 
 ---
 
@@ -141,7 +141,7 @@ flowchart TD
     C --> D["UsersService.validateUser()"]
     D --> E["bcrypt ile şifre karşılaştır"]
     E -->|Başarısız| Z["401 Unauthorized"]
-    E -->|Başarılı| F["UserDocument → request.user"]
+    E -->|Başarılı| F["User → request.user"]
     F --> G["AuthController.signIn()"]
     G --> H["@CurrentUser() → user al"]
     H --> I["AuthService.signIn(user, response)"]
@@ -163,6 +163,9 @@ flowchart LR
 
 - `httpOnly: true` → JavaScript ile okunamaz (XSS koruması)
 - `expires` → `JWT_EXPIRATION` saniye sonra geçersiz olur
+- Payload `{ userId }` içerir. `userId`, Prisma'daki `User.id` (Int) değeridir.
+
+> ⚠️ **Bilinen uyumsuzluk:** Token `jwt` adlı cookie'ye yazılıyor, ama `JwtStrategy` ve `libs/common` içindeki `JwtAuthGuard` token'ı `Authentication` cookie'sinden okuyor. İki isim eşitlenmeden korumalı route'lar çalışmaz.
 
 ---
 
