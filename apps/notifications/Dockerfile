@@ -2,17 +2,21 @@ FROM node:alpine As development
 
 WORKDIR /usr/src/app
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json nest-cli.json ./
-COPY apps/notifications/package.json ./apps/notifications/
+COPY package.json ./
+COPY pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml ./
+COPY tsconfig.json tsconfig.json
+COPY nest-cli.json nest-cli.json
+COPY apps/notifications/package.json apps/notifications/package.json
 
 RUN npm install -g pnpm@8
 
-COPY apps/notifications ./apps/notifications
+COPY apps/notifications apps/notifications
 COPY libs libs
 
 RUN pnpm install -r --shamefully-hoist --config.confirmModulesPurge=false
 
-RUN pnpm run build notifications
+RUN pnpm -w run build notifications
 
 FROM node:alpine As production
 
@@ -25,4 +29,4 @@ COPY --from=development /usr/src/app/node_modules ./node_modules
 COPY --from=development /usr/src/app/dist ./dist
 COPY proto proto
 
-CMD ["node", "dist/apps/notifications/main"]
+CMD ["sh", "-c", "node dist/apps/notifications/main"]

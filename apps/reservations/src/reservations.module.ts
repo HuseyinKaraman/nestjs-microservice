@@ -1,27 +1,22 @@
 import { Module } from '@nestjs/common';
-import { DatabaseModule, LoggerModule, HealthModule, AUTH_PACKAGE_NAME, PAYMENTS_PACKAGE_NAME, AUTH_SERVICE_NAME, PAYMENTS_SERVICE_NAME } from '@app/common';
+import { LoggerModule, HealthModule, AUTH_PACKAGE_NAME, PAYMENTS_PACKAGE_NAME, AUTH_SERVICE_NAME, PAYMENTS_SERVICE_NAME } from '@app/common';
 import { ReservationsController } from './reservations.controller';
 import { ReservationsService } from './reservations.service';
-import { ReservationsRepository } from './reservations.repository';
-import { ReservationSchema } from './models/reservation.schema';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import Joi from 'joi';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { join } from 'path';
+import { PrismaService } from './prisma.service';
 
 @Module({
   imports: [
-    DatabaseModule,
-    DatabaseModule.forFeature([
-      { name: 'ReservationDocument', schema: ReservationSchema },
-    ]),
     LoggerModule,
     ConfigModule.forRoot({ 
       isGlobal: true,
       validationSchema: Joi.object({
         NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
         PORT: Joi.number().default(3000),
-        MONGODB_URI: Joi.string().required()
+        DATABASE_URL: Joi.string().required()
       }),
     }),
     ClientsModule.registerAsync([
@@ -54,8 +49,8 @@ import { join } from 'path';
   ],
   controllers: [ReservationsController],
   providers: [
-    ReservationsService, 
-    ReservationsRepository
+    ReservationsService,
+    PrismaService
   ],
 })
 export class ReservationsModule {}

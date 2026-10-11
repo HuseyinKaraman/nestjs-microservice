@@ -18,7 +18,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       validationSchema: Joi.object({
         NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
         HTTP_PORT: Joi.number().default(3001),
-        MONGODB_URI: Joi.string().required(),
+        DATABASE_URL: Joi.string().required(),
         JWT_SECRET: Joi.string().required(),
         JWT_EXPIRATION: Joi.number().default(3600),
       }),

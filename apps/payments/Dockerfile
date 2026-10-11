@@ -2,17 +2,21 @@ FROM node:alpine As development
 
 WORKDIR /usr/src/app
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json nest-cli.json ./
-COPY apps/payments/package.json ./apps/payments/
+COPY package.json ./
+COPY pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml ./
+COPY tsconfig.json tsconfig.json
+COPY nest-cli.json nest-cli.json
+COPY apps/payments/package.json apps/payments/package.json
 
 RUN npm install -g pnpm@8
 
-COPY apps/payments ./apps/payments
+COPY apps/payments apps/payments
 COPY libs libs
 
 RUN pnpm install -r --shamefully-hoist --config.confirmModulesPurge=false
 
-RUN pnpm run build payments
+RUN pnpm -w run build payments
 
 FROM node:alpine As production
 
@@ -25,4 +29,4 @@ COPY --from=development /usr/src/app/node_modules ./node_modules
 COPY --from=development /usr/src/app/dist ./dist
 COPY proto proto
 
-CMD ["node", "dist/apps/payments/main"]
+CMD ["sh", "-c", "node dist/apps/payments/main"]

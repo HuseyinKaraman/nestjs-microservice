@@ -4,17 +4,18 @@ services:
       context: .
       dockerfile: ./apps/reservations/Dockerfile
       target: development
-    command: pnpm run start:dev reservations ## For debugging start:debug
+    command: sh -c "cd apps/reservations && pnpm prisma migrate deploy && pnpm prisma generate && cd ../.. && pnpm run start:dev reservations" ## For debugging start:debug
     env_file:
       - ./apps/reservations/.env
     ports:
       - "3001:3001"
-      # - "9229:9229" ## For debugging with VS Code 
+      # - "9229:9229" ## For debugging with VS Code
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
+      - /usr/src/app/apps/reservations/node_modules
     depends_on:
-      - mongo
+      - postgres
 
   payments:
     build:
@@ -28,14 +29,14 @@ services:
       - .:/usr/src/app
       - /usr/src/app/node_modules
     depends_on:
-      - mongo
+      - postgres
 
   auth:
     build:
       context: .
       dockerfile: ./apps/auth/Dockerfile
       target: development
-    command: pnpm run start:dev auth
+    command: sh -c "cd apps/auth && pnpm prisma migrate deploy && pnpm prisma generate && cd ../.. && pnpm run start:dev auth" ## For debugging start:debug
     env_file:
       - ./apps/auth/.env
     ports:
@@ -43,8 +44,9 @@ services:
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
+      - /usr/src/app/apps/auth/node_modules
     depends_on:
-      - mongo
+      - postgres
 
   notifications:
     build:
@@ -58,15 +60,17 @@ services:
       - .:/usr/src/app
       - /usr/src/app/node_modules
     depends_on:
-      - mongo
+      - postgres
 
-  mongo:
-    image: mongo
-    container_name: sleepr-mongo
+  postgres:
+    image: postgres
+    container_name: sleepr-postgres
     ports:
-      - "27017:27017"
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=postgres
     volumes:
-      - mongo-data:/data/db
+      - postgres-data:/var/lib/postgresql
 
 volumes:
-  mongo-data:
+  postgres-data:

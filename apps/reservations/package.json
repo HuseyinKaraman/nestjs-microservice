@@ -1,0 +1,23 @@
+{
+  "name": "@sleepr/reservations",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "migrate": "dotenv -e .env.local -- pnpm prisma migrate dev",
+    "generate": "dotenv -e .env.local -- pnpm prisma generate"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "dotenv": "^16.5.0",
+    "pg": "^8.16.0",
+    "prisma": "^7.8.0"
+  },
+  "devDependencies": {
+    "dotenv-cli": "^11.0.0"
+  }
+}

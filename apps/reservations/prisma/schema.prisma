@@ -1,0 +1,25 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+  module   = "esnext"
+  runtime  = "nodejs"
+}
+datasource db {
+  provider = "postgresql"
+}
+
+model Reservation {
+  id         Int     @id @default(autoincrement())
+  timestamp  DateTime
+  startDate  DateTime
+  endDate    DateTime
+  userId     Int
+  invoiceId  String    @unique
+
+  @@index([userId])
+}

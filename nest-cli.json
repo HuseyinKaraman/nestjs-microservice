@@ -14,7 +14,8 @@
       "entryFile": "main",
       "sourceRoot": "apps/auth/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/auth/tsconfig.app.json"
+        "tsConfigPath": "apps/auth/tsconfig.app.json",
+        "webpackConfigPath": "apps/auth/webpack.config.js"
       }
     },
     "common": {
@@ -32,7 +33,8 @@
       "entryFile": "main",
       "sourceRoot": "apps/notifications/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/notifications/tsconfig.app.json"
+        "tsConfigPath": "apps/notifications/tsconfig.app.json",
+        "webpackConfigPath": "apps/notifications/webpack.config.js"
       }
     },
     "payments": {
@@ -41,7 +43,8 @@
       "entryFile": "main",
       "sourceRoot": "apps/payments/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/payments/tsconfig.app.json"
+        "tsConfigPath": "apps/payments/tsconfig.app.json",
+        "webpackConfigPath": "apps/payments/webpack.config.js"
       }
     },
     "reservations": {
@@ -50,7 +53,8 @@
       "entryFile": "main",
       "sourceRoot": "apps/reservations/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/reservations/tsconfig.app.json"
+        "tsConfigPath": "apps/reservations/tsconfig.app.json",
+        "webpackConfigPath": "apps/reservations/webpack.config.js"
       }
     }
   },
